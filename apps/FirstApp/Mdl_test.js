@@ -5,15 +5,16 @@ module.exports = {
 
   foo : function(){
 
+    throw 'custom error';
 
     console.log("test0 foo");
 
   },
-  bar : function(){
-
-    console.log("test0 bar");
-
+    
+  bar : function(data){
+    data.forEach(function(prm, i){
+        console.log('bar prm('+i+') : ' + prm);
+    });
   }
-
 }
  

@@ -1,6 +1,7 @@
 var express = require('express');
 var http = require('http');
 var jsonfile = require('jsonfile');
+var fs =require('fs');
 
 var router = express();
 
@@ -48,6 +49,7 @@ function initApp(app, index) {
         };
         server.__modules[obj.name]["clearOnRequest"] = function() {
             this.request = {};
+            this.response.end();
             this.response = {};
         };
         console.log("         ./apps/" + server._app.name + "/" + obj.name);
@@ -72,8 +74,37 @@ function onRequest(req, res) {
     var items = req.path.split("/")
     var modulename = items[1];
     var methodname = items[2];
+    var Modules = req.socket.server.__modules;
+    if (Modules[modulename] == null){
+        console.log(serverName + ' - invalid module : ' + modulename);
+        redirectError(res, 404);
+        return;
+    }
+    try{
+        Modules[modulename]["initOnRequest"](req, res);
+        Modules[modulename][methodname](items);
+        Modules[modulename]["clearOnRequest"]();
+    }
+    catch(ex){
+        console.log(serverName + ' - exception : ' + ex);  
+        redirectError(res, 500);
+    }
     
-    req.socket.server.__modules[modulename]["initOnRequest"](req, res);
-    req.socket.server.__modules[modulename][methodname]();
-    req.socket.server.__modules[modulename]["clearOnRequest"]();
 }
+
+function redirectError(response, errcode){
+    
+ fs.readFile('./err/'+errcode+'.html', "binary", function(err, file) {
+    if(err) {
+       response.writeHead(404, {"Content-Type": "text/html"});
+       response.write("404 Not Found\n");
+    } else {
+       response.writeHead(errcode);
+       response.write(file, "binary");            
+    }
+    response.end();
+    return;
+  });
+}
+
+
